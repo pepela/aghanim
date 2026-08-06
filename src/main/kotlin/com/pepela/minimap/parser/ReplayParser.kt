@@ -45,14 +45,22 @@ internal class ReplayParser(
         refreshHeroes()
         refreshBuildings()
         refreshWards()
+        refreshRunes()
         onSnapshot(state.copySnapshot())
     }
 
     @OnEntityDeleted(classPattern = ".*")
     protected fun onEntityDeleted(entity: Entity) {
-        val name = entity.buildingName() ?: return
-        state.buildings[name]?.alive = false
-        state.buildings[name]?.health = 0
+        if (entity.isBuilding()) {
+            val name = entity.buildingName() ?: return
+            state.buildings[name]?.alive = false
+            state.buildings[name]?.health = 0
+        }
+
+        if (entity.isRune()) {
+            val name = entity.runeName() ?: return
+            state.runes[name]?.isAvailable = false
+        }
     }
 
     private fun refreshHeroes() {
@@ -77,7 +85,7 @@ internal class ReplayParser(
 
         var slot = 0
         state.heroes.clear()
-        entityList { it.isHeroEntity() }
+        entityList { it.isHero() }
             .sortedBy { it.handle }
             .forEach { hero ->
                 val pos = hero.position() ?: return@forEach
@@ -95,17 +103,17 @@ internal class ReplayParser(
     }
 
     private fun refreshBuildings() {
-        entityList { it.isBuildingEntity() }.forEach { building ->
+        entityList { it.isBuilding() }.forEach { building ->
             val name = building.buildingName() ?: return@forEach
-            val pos = building.position()
+            val position = building.position()
             val health = building.firstInt("m_iHealth", "m_iHealth.0000") ?: 0
             val maxHealth = building.firstInt("m_iMaxHealth", "m_iMaxHealth.0000") ?: 0
             val alive = building.isAliveUnit() && (maxHealth <= 0 || health > 0)
             state.buildings[name] = Building(
                 handle = building.handle,
                 name = name,
-                x = pos?.first ?: state.buildings[name]?.x ?: 0f,
-                y = pos?.second ?: state.buildings[name]?.y ?: 0f,
+                x = position?.first ?: state.buildings[name]?.x ?: 0f,
+                y = position?.second ?: state.buildings[name]?.y ?: 0f,
                 health = health,
                 maxHealth = maxHealth,
                 alive = alive,
@@ -115,21 +123,34 @@ internal class ReplayParser(
     }
 
     private fun refreshWards() {
-        entityList { entity -> entity.isWardEntity() }.forEach { ward ->
+        entityList { entity -> entity.isWard() }.forEach { ward ->
             val name = ward.wardName() ?: return@forEach
-            val pos = ward.position()
+            val position = ward.position()
             val health = ward.firstInt("m_iHealth", "m_iHealth.0000") ?: 0
             val maxHealth = ward.firstInt("m_iMaxHealth", "m_iMaxHealth.0000") ?: 0
             val alive = ward.isAliveUnit() && (maxHealth <= 0 || health > 0)
             state.wards[name] = Ward(
                 handle = ward.handle,
                 name = name,
-                x = pos?.first ?: state.buildings[name]?.x ?: 0f,
-                y = pos?.second ?: state.buildings[name]?.y ?: 0f,
+                x = position?.first ?: state.buildings[name]?.x ?: 0f,
+                y = position?.second ?: state.buildings[name]?.y ?: 0f,
                 health = health,
                 maxHealth = maxHealth,
                 alive = alive,
                 team = ward.teamNumber(),
+            )
+        }
+    }
+
+    private fun refreshRunes() {
+        entityList { entity -> entity.isRune() }.forEach { rune ->
+            val name = rune.runeName() ?: return@forEach
+            val position = rune.position()
+            state.runes[name] = Rune(
+                handle = rune.handle,
+                name = name,
+                x = position?.first ?: state.buildings[name]?.x ?: 0f,
+                y = position?.second ?: state.buildings[name]?.y ?: 0f,
             )
         }
     }
@@ -176,12 +197,12 @@ internal class ReplayParser(
         return result
     }
 
-    private fun Entity.isHeroEntity(): Boolean {
+    private fun Entity.isHero(): Boolean {
         val dt = dtClass.dtName
         return dt.contains("Hero", ignoreCase = true) && !dt.contains("Illusion", ignoreCase = true)
     }
 
-    private fun Entity.isBuildingEntity(): Boolean {
+    private fun Entity.isBuilding(): Boolean {
         val dt = dtClass.dtName
         val name = buildingName().orEmpty()
         return dt.contains("Tower", ignoreCase = true) ||
@@ -192,9 +213,13 @@ internal class ReplayParser(
                 name.contains("fort", ignoreCase = true)
     }
 
-    private fun Entity.isWardEntity(): Boolean {
+    private fun Entity.isWard(): Boolean {
         val dt = dtClass.dtName
         return dt.contains("Observer_ward", ignoreCase = true)
+    }
+
+    private fun Entity.isRune(): Boolean {
+        return dtClass.dtName == "CDOTA_Item_Rune"
     }
 
     private fun Entity.heroName(): String {
@@ -224,6 +249,30 @@ internal class ReplayParser(
             !dtClass.dtName.contains("Sentryward", true)
         ) return null
         return "${dtClass.dtName}_${handle}"
+    }
+
+    private fun Entity.runeName(): String? {
+        val explicit = firstString("m_iName", "m_iszUnitName", "m_pEntity.m_name")
+            ?.takeIf { it.isNotBlank() }
+        if (explicit != null) return explicit
+
+        if (!dtClass.dtName.contains("Rune", true))
+            return null
+
+        val type = firstInt("m_iRuneType") ?: return null
+
+        return when (type) {
+            0 -> "Amplify"
+            1 -> "Haste"
+            2 -> "Illusion"
+            3 -> "Invisibility"
+            4 -> "Regeneration"
+            5 -> "Bounty"
+            6 -> "Arcane"
+            7 -> "Water"
+            9 -> "Shield"
+            else -> "Unknown Rune ($type)"
+        } + "_$handle"
     }
 
     private fun Entity.position(): Pair<Float, Float>? {
@@ -257,8 +306,11 @@ internal class ReplayParser(
     }
 
     private fun Entity.firstString(vararg names: String): String? = firstProperty<String>(*names)
+
     private fun Entity.firstVector(vararg names: String): Vector? = firstProperty<Vector>(*names)
+
     private fun Entity.firstInt(vararg names: String): Int? = firstNumber(*names)?.toInt()
+
     private fun Entity.firstFloat(vararg names: String): Float? = firstNumber(*names)?.toFloat()
 
     private fun Entity.firstNumber(vararg names: String): Number? {

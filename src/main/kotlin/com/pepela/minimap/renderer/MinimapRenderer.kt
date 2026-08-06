@@ -3,10 +3,13 @@
 import com.pepela.minimap.parser.Building
 import com.pepela.minimap.parser.GameState
 import com.pepela.minimap.parser.Hero
+import com.pepela.minimap.parser.Rune
 import com.pepela.minimap.parser.Ward
 import com.pepela.minimap.sprite.BuildingSprites
 import com.pepela.minimap.sprite.BuildingType
 import com.pepela.minimap.sprite.HeroSprites
+import com.pepela.minimap.sprite.RuneSprites
+import com.pepela.minimap.sprite.RuneType
 import com.pepela.minimap.sprite.WardSprites
 import com.pepela.minimap.sprite.WardType
 import java.awt.AlphaComposite
@@ -29,6 +32,7 @@ internal class MinimapRenderer(
     private val buildingSprites = BuildingSprites.load(javaClass)
     private val wardSprites = WardSprites.load(javaClass)
     private var heroSprites: HeroSprites? = null
+    private val runeSprites = RuneSprites.load(javaClass)
 
     fun render(state: GameState): BufferedImage {
         val image = BufferedImage(minimap.width, minimap.height, BufferedImage.TYPE_INT_ARGB)
@@ -47,6 +51,7 @@ internal class MinimapRenderer(
                 .forEach { building -> drawBuilding(graphics, building) }
             state.heroes.values.sortedBy { hero -> hero.slot }.forEach { hero -> drawHero(graphics, hero) }
             state.wards.values.sortedBy { ward -> ward.name }.forEach { ward -> drawWard(graphics, ward) }
+            state.runes.values.sortedBy { rune -> rune.name }.forEach { rune -> drawRune(graphics, rune) }
             drawClock(graphics, state.gameTime)
         } finally {
             graphics.dispose()
@@ -105,6 +110,20 @@ internal class MinimapRenderer(
         val oldComposite = graphics.composite
 
         graphics.drawImage(image, x, y, size, size, null)
+        graphics.composite = oldComposite
+    }
+
+    private fun drawRune(graphics: Graphics2D, rune: Rune) {
+        if (rune.name.contains("unknown") || !rune.isAvailable) return
+        val pixelPoint = projection.toPixel(rune.x, rune.y, minimap.width, minimap.height)
+        val type = RuneType.fromName(rune.name)
+        val sprite = runeSprites.spriteFor(type)
+        val size = (minimap.width / 25).coerceAtLeast(16)
+        val x = pixelPoint.x - size / 2
+        val y = pixelPoint.y - size / 2
+        val oldComposite = graphics.composite
+
+        graphics.drawImage(sprite, x, y, size, size, null)
         graphics.composite = oldComposite
     }
 
