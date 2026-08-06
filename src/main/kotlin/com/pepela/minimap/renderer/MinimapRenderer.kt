@@ -39,7 +39,7 @@ internal class MinimapRenderer(
             graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
             graphics.font = Font(Font.SANS_SERIF, Font.BOLD, (minimap.width / 46).coerceAtLeast(12))
 
-            if (state.heroes.isNotEmpty() && heroSprites == null) {
+            if (state.heroes.size >= 10 && heroSprites == null) {
                 heroSprites = HeroSprites.load(javaClass, state.heroes.values)
             }
 
@@ -63,8 +63,8 @@ internal class MinimapRenderer(
         graphics.fillOval(pixelPoint.x - radius, pixelPoint.y - radius, radius * 2, radius * 2)
         graphics.drawOval(pixelPoint.x - radius, pixelPoint.y - radius, radius * 2, radius * 2)
         val sprite = heroSprites?.spriteFor(hero)
-        sprite?.let { sprite ->
-            val image = if (hero.alive) sprite else sprite.grayscale()
+        sprite?.let {
+            val image = if (hero.alive) it else it.grayscale()
             val size = 50
             val x = pixelPoint.x - size / 2
             val y = pixelPoint.y - size / 2

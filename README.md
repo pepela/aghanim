@@ -125,7 +125,6 @@ MP4 Video
 
 ## Planned Features
 
-* Hero icons
 * Hero movement directions
 * Fog of War visualization
 * Runes

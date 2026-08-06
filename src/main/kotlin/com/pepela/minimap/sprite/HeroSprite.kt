@@ -37,10 +37,16 @@ internal data class HeroSprites(
             heroes
                 .filter { it.team == team }
                 .mapNotNull { hero ->
-                    val path = "/heroes/${hero.name.removePrefix("CDOTA_Unit_Hero_").lowercase()}.png"
+                    val normalizedName = hero.name
+                        .removePrefix("CDOTA_Unit_Hero_")
+                        .replace("_", "")
+                        .lowercase()
+                    val path = "/heroes/$normalizedName.png"
 
                     runCatching {
                         hero.name to loader.loadResourceImage(path)
+                    }.onFailure {
+                        println("Failed to load image for hero ${hero.name}")
                     }.getOrNull()
                 }
                 .toMap()
