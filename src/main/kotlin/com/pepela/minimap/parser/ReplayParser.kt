@@ -194,8 +194,7 @@ internal class ReplayParser(
 
     private fun Entity.isWardEntity(): Boolean {
         val dt = dtClass.dtName
-        return dt.contains("sentryward", ignoreCase = true) ||
-                dt.contains("Observer_ward", ignoreCase = true)
+        return dt.contains("Observer_ward", ignoreCase = true)
     }
 
     private fun Entity.heroName(): String {

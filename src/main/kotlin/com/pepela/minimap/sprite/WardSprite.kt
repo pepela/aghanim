@@ -39,8 +39,8 @@ internal enum class WardType {
     companion object {
         fun fromName(name: String): WardType {
             return when {
-                name.contains("Observer_Ward", ignoreCase = true) -> OBSERVER
-                else -> SENTRY
+                name.contains("TrueSight", ignoreCase = true) -> SENTRY
+                else -> OBSERVER
             }
         }
     }
