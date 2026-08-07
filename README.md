@@ -14,6 +14,8 @@ It is designed as a foundation for replay visualization, analytics, and content 
 * 🗺️ Render hero positions on a minimap
 * 🏰 Render building positions and state on a minimap
 * 🧿 Render ward positions on a minimap
+* 🔮 Render rune positions on a minimap
+* 👹 Render Roshan position on a minimap
 * 🎞️ Generate frame-by-frame replay visualization
 * 🎥 Encode rendered frames into an MP4 video using FFmpeg
 
