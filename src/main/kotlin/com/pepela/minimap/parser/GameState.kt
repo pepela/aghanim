@@ -5,6 +5,7 @@ internal class GameState(
     val buildings: MutableMap<String, Building> = linkedMapOf(),
     val wards: MutableMap<String, Ward> = linkedMapOf(),
     val runes: MutableMap<String, Rune> = linkedMapOf(),
+    var roshan: Roshan? = null,
     var gameTime: Float = -90f,
 ) {
     fun copySnapshot(): GameState {
@@ -13,6 +14,7 @@ internal class GameState(
         buildings.forEach { (name, building) -> copy.buildings[name] = building.copy() }
         wards.forEach { (name, ward) -> copy.wards[name] = ward.copy() }
         runes.forEach { (name, rune) -> copy.runes[name] = rune.copy() }
+        copy.roshan = roshan
         return copy
     }
 }

@@ -127,7 +127,6 @@ MP4 Video
 
 * Hero movement directions
 * Fog of War visualization
-* Roshan's location
 
 ---
 

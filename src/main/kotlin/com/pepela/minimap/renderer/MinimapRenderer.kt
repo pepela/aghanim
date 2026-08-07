@@ -3,11 +3,13 @@
 import com.pepela.minimap.parser.Building
 import com.pepela.minimap.parser.GameState
 import com.pepela.minimap.parser.Hero
+import com.pepela.minimap.parser.Roshan
 import com.pepela.minimap.parser.Rune
 import com.pepela.minimap.parser.Ward
 import com.pepela.minimap.sprite.BuildingSprites
 import com.pepela.minimap.sprite.BuildingType
 import com.pepela.minimap.sprite.HeroSprites
+import com.pepela.minimap.sprite.RoshanSprite
 import com.pepela.minimap.sprite.RuneSprites
 import com.pepela.minimap.sprite.RuneType
 import com.pepela.minimap.sprite.WardSprites
@@ -33,6 +35,7 @@ internal class MinimapRenderer(
     private val wardSprites = WardSprites.load(javaClass)
     private var heroSprites: HeroSprites? = null
     private val runeSprites = RuneSprites.load(javaClass)
+    private val roshanSprite = RoshanSprite.load(javaClass)
 
     fun render(state: GameState): BufferedImage {
         val image = BufferedImage(minimap.width, minimap.height, BufferedImage.TYPE_INT_ARGB)
@@ -52,6 +55,7 @@ internal class MinimapRenderer(
             state.heroes.values.sortedBy { hero -> hero.slot }.forEach { hero -> drawHero(graphics, hero) }
             state.wards.values.sortedBy { ward -> ward.name }.forEach { ward -> drawWard(graphics, ward) }
             state.runes.values.sortedBy { rune -> rune.name }.forEach { rune -> drawRune(graphics, rune) }
+            drawRoshan(graphics, state.roshan)
             drawClock(graphics, state.gameTime)
         } finally {
             graphics.dispose()
@@ -63,7 +67,7 @@ internal class MinimapRenderer(
         val pixelPoint = projection.toPixel(hero.x, hero.y, minimap.width, minimap.height)
         val heroColor = if (hero.alive) teamColor(hero.team, hero.slot) else dead
 
-        val radius = (minimap.width / 35).coerceAtLeast(8)
+        val radius = (minimap.width / 38).coerceAtLeast(8)
         graphics.color = heroColor
         graphics.fillOval(pixelPoint.x - radius, pixelPoint.y - radius, radius * 2, radius * 2)
         graphics.drawOval(pixelPoint.x - radius, pixelPoint.y - radius, radius * 2, radius * 2)
@@ -124,6 +128,20 @@ internal class MinimapRenderer(
         val oldComposite = graphics.composite
 
         graphics.drawImage(sprite, x, y, size, size, null)
+        graphics.composite = oldComposite
+    }
+
+    private fun drawRoshan(graphics: Graphics2D, roshan: Roshan?) {
+        if (roshan == null) return
+        val pixelPoint = projection.toPixel(roshan.x, roshan.y, minimap.width, minimap.height)
+        val sprite = roshanSprite.sprite()
+        val image = if (roshan.alive) sprite else sprite.grayscale()
+        val size = (minimap.width / 25).coerceAtLeast(16)
+        val x = pixelPoint.x - size / 2
+        val y = pixelPoint.y - size / 2
+        val oldComposite = graphics.composite
+
+        graphics.drawImage(image, x, y, size, size, null)
         graphics.composite = oldComposite
     }
 

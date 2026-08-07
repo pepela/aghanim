@@ -46,6 +46,7 @@ internal class ReplayParser(
         refreshBuildings()
         refreshWards()
         refreshRunes()
+        refreshRoshan()
         onSnapshot(state.copySnapshot())
     }
 
@@ -155,6 +156,20 @@ internal class ReplayParser(
         }
     }
 
+    private fun refreshRoshan() {
+        entityList { entity -> entity.isRoshan() }.forEach { roshan ->
+            val name = roshan.roshanName() ?: return@forEach
+            val position = roshan.position()
+            state.roshan = Roshan(
+                handle = roshan.handle,
+                name = name,
+                x = position?.first ?: state.roshan?.x ?: 0f,
+                y = position?.second ?: state.roshan?.y ?: 0f,
+                alive = roshan.isAliveUnit(),
+            )
+        }
+    }
+
     private fun selectedHeroEntities(): List<Pair<Int, Entity>> {
         val playerResource = entities.getByDtName("CDOTA_PlayerResource")
             ?: entities.getByDtName("DT_DOTA_PlayerResource")
@@ -222,6 +237,11 @@ internal class ReplayParser(
         return dtClass.dtName == "CDOTA_Item_Rune"
     }
 
+    private fun Entity.isRoshan(): Boolean {
+        return dtClass.dtName.equals("npm_dota_roshan", ignoreCase = true) ||
+                dtClass.dtName.equals("CDOTA_Unit_Roshan", ignoreCase = true)
+    }
+
     private fun Entity.heroName(): String {
         return firstString("m_iName", "m_iszUnitName", "m_pEntity.m_name")
             ?.takeIf { it.isNotBlank() }
@@ -273,6 +293,21 @@ internal class ReplayParser(
             9 -> "Shield"
             else -> "Unknown Rune ($type)"
         } + "_$handle"
+    }
+
+    private fun Entity.roshanName(): String? {
+        val explicit = firstString("m_iName", "m_iszUnitName", "m_pEntity.m_name")
+            ?.takeIf { it.isNotBlank() }
+
+        if (explicit?.contains("roshan", ignoreCase = true) == true) {
+            return explicit
+        }
+
+        if (!dtClass.dtName.contains("roshan", true)) {
+            return null
+        }
+
+        return "${dtClass.dtName}_${handle}"
     }
 
     private fun Entity.position(): Pair<Float, Float>? {
